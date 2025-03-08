@@ -100,7 +100,7 @@ response, err := pool.QueuedEVS(
 
 ## License
 
-[MIT]
+MIT
 
 ## Contributing
 
