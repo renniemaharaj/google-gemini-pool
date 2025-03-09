@@ -38,24 +38,30 @@ func chatApp(p *pool.Instance) {
 		}
 
 		// Queue a session
-		session, cleanup, err := p.Queue(context.Background())
+		// session, cleanup, err := p.Queue(context.Background())
+		response, err := p.QueuedEVS(context.Background(), gemi.Input{
+			Current: genai.Text(userInput),
+			History: HISTORY,
+			Context: []map[string]string{},
+		}, func(resp string) error { return nil }, 1, 2)
+
 		if err != nil {
 			log.Printf("Failed to queue session: %v", err)
 			continue
 		}
-		defer cleanup()
+		// defer cleanup()
 
 		// Send message and get response
-		response, err := session.SendInput(context.Background(), gemi.Input{
-			Current: genai.Text(userInput),
-			History: HISTORY,
-			Context: []map[string]string{},
-		})
+		// response, err := session.SendInput(context.Background(), gemi.Input{
+		// 	Current: genai.Text(userInput),
+		// 	History: HISTORY,
+		// 	Context: []map[string]string{},
+		// })
 
-		if err != nil {
-			log.Printf("Error getting response: %v", err)
-			continue
-		}
+		// if err != nil {
+		// 	log.Printf("Error getting response: %v", err)
+		// 	continue
+		// }
 
 		fmt.Printf("AI: %s\n", response)
 
