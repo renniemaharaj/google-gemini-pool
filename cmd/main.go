@@ -20,9 +20,9 @@ var GEMINI_API_KEYS_POOL_SCHEMA = []transformer.API{
 	},
 }
 
-var HYSTORY = []*genai.Content{}
+var HISTORY = []*genai.Content{}
 
-func chatApp() {
+func chatApp(p *pool.Instance) {
 	log.Println("Starting chat application (type 'exit' to quit)")
 	scanner := bufio.NewScanner(os.Stdin)
 
@@ -38,7 +38,7 @@ func chatApp() {
 		}
 
 		// Queue a session
-		session, cleanup, err := pool.Queue(context.Background())
+		session, cleanup, err := p.Queue(context.Background())
 		if err != nil {
 			log.Printf("Failed to queue session: %v", err)
 			continue
@@ -48,7 +48,7 @@ func chatApp() {
 		// Send message and get response
 		response, err := session.SendInput(context.Background(), gemi.Input{
 			Current: genai.Text(userInput),
-			History: HYSTORY,
+			History: HISTORY,
 			Context: []map[string]string{},
 		})
 
@@ -59,82 +59,83 @@ func chatApp() {
 
 		fmt.Printf("AI: %s\n", response)
 
-		HYSTORY = append(HYSTORY, &genai.Content{Parts: []genai.Part{genai.Text(userInput)}, Role: "user"})
-		HYSTORY = append(HYSTORY, &genai.Content{Parts: []genai.Part{genai.Text(response)}, Role: "model"})
+		HISTORY = append(HISTORY, &genai.Content{Parts: []genai.Part{genai.Text(userInput)}, Role: "user"})
+		HISTORY = append(HISTORY, &genai.Content{Parts: []genai.Part{genai.Text(response)}, Role: "model"})
 	}
 }
 
 func main() {
 	// Initialize API pool
+	pool := pool.Instance{}
 	pool.InitializePool()
 
-	// Use different examples
-	// useChannel()
-	// useQueue()
-	// useQueuedEVS()
-	chatApp()
+	// Start chatting
+	chatApp(&pool)
+	// useQueuedEVS(&pool)
+	// useChannel(&pool)
+	// useQueue(&pool)
 
 	// Wait for the example to finish
 	fmt.Scanln()
 }
 
-func useChannel() {
-	log.Println("Using Channel Example")
-	pool.Channel <- GEMINI_API_KEYS_POOL_SCHEMA[0]
-}
+// func useChannel(p *pool.Pool) {
+// 	log.Println("Using Channel Example")
+// 	p.Channel <- GEMINI_API_KEYS_POOL_SCHEMA[0]
+// }
 
-func useQueue() {
-	log.Println("Using Queue Example")
+// func useQueue(p *pool.Pool) {
+// 	log.Println("Using Queue Example")
 
-	// Queue a session
-	session, cleanup, err := pool.Queue(context.Background())
-	if err != nil {
-		log.Fatalf("Failed to queue session: %v", err)
-	}
-	defer cleanup()
+// 	// Queue a session
+// 	session, cleanup, err := p.Queue(context.Background())
+// 	if err != nil {
+// 		log.Fatalf("Failed to queue session: %v", err)
+// 	}
+// 	defer cleanup()
 
-	// Create input
-	input := gemi.Input{
-		Current: genai.Text("Hello World"),
-		History: []*genai.Content{},
-		Context: []map[string]string{},
-	}
+// 	// Create input
+// 	input := gemi.Input{
+// 		Current: genai.Text("Hello World"),
+// 		History: []*genai.Content{},
+// 		Context: []map[string]string{},
+// 	}
 
-	// Send input to AI model
-	resp, err := session.SendInput(context.Background(), input)
-	if err != nil {
-		log.Fatalf("Error sending input: %v", err)
-	}
-	log.Println(resp)
+// 	// Send input to AI model
+// 	resp, err := session.SendInput(context.Background(), input)
+// 	if err != nil {
+// 		log.Fatalf("Error sending input: %v", err)
+// 	}
+// 	log.Println(resp)
 
-	// Send a string directly
-	resp2, err2 := session.SendString(context.Background(), "Hello World")
-	if err2 != nil {
-		log.Fatalf("Error sending string: %v", err2)
-	}
-	log.Println(resp2)
-}
+// 	// Send a string directly
+// 	resp2, err2 := session.SendString(context.Background(), "Hello World")
+// 	if err2 != nil {
+// 		log.Fatalf("Error sending string: %v", err2)
+// 	}
+// 	log.Println(resp2)
+// }
 
-func useQueuedEVS() {
-	log.Println("Using QueuedEVS Example")
+// func useQueuedEVS(p *pool.Pool) {
+// 	log.Println("Using QueuedEVS Example")
 
-	// Create input
-	input := gemi.Input{
-		Current: genai.Text("Hello World"),
-		History: []*genai.Content{},
-		Context: []map[string]string{},
-	}
+// 	// Create input
+// 	input := gemi.Input{
+// 		Current: genai.Text("Hello World"),
+// 		History: []*genai.Content{},
+// 		Context: []map[string]string{},
+// 	}
 
-	// Validation function
-	validate := func(resp string) error {
-		return nil // Replace with actual validation logic
-	}
+// 	// Validation function
+// 	validate := func(resp string) error {
+// 		return nil // Replace with actual validation logic
+// 	}
 
-	// Queue a resp with retries and validation
-	resp, err := pool.QueuedEVS(context.Background(), input, validate, 3, 2)
-	if err != nil {
-		log.Fatalf("Error in QueuedEVS: %v", err)
-	}
+// 	// Queue a resp with retries and validation
+// 	resp, err := p.QueuedEVS(context.Background(), input, validate, 3, 2)
+// 	if err != nil {
+// 		log.Fatalf("Error in QueuedEVS: %v", err)
+// 	}
 
-	log.Println(resp)
-}
+// 	log.Println(resp)
+// }

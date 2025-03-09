@@ -14,23 +14,25 @@ import (
 	"github.com/renniemaharaj/google-gemini-pool/pkg/transformer/gemi"
 )
 
-// API keys pool
-var Channel chan transformer.API
-var once sync.Once // ensures initialization happens only once
+type Instance struct {
+	Channel chan transformer.API
+	once    sync.Once // ensures initialization happens only once
+
+}
 
 // Initialize API key pool
-func HydrateChannels(keys []transformer.API) {
-	once.Do(func() {
-		Channel = make(chan transformer.API, len(keys))
+func (p *Instance) HydrateChannels(keys []transformer.API) {
+	p.once.Do(func() {
+		p.Channel = make(chan transformer.API, len(keys))
 		for _, key := range keys {
-			Channel <- key
+			p.Channel <- key
 		}
 		log.Printf("API Key Pool Initialized with %d keys", len(keys))
 	})
 }
 
 // LoadGeminiAPIPool loads API keys from an environment variable.
-func LoadEnv_GEMINI_API_KEYS_POOL(envVar string) ([]transformer.API, error) {
+func (p *Instance) LoadEnv_GEMINI_API_KEYS_POOL(envVar string) ([]transformer.API, error) {
 	jsonStr := os.Getenv(envVar)
 	if jsonStr == "" {
 		return nil, fmt.Errorf("environment variable %s is empty", envVar)
@@ -48,28 +50,28 @@ func LoadEnv_GEMINI_API_KEYS_POOL(envVar string) ([]transformer.API, error) {
 	log.Printf("Loaded %d API keys from environment variable %s", len(keys), envVar)
 
 	// Initialize the API key pool
-	HydrateChannels(keys)
+	p.HydrateChannels(keys)
 
 	return keys, nil
 }
 
 // InitializePool initializes the API key pool.
-func InitializePool() {
-	keys, err := LoadEnv_GEMINI_API_KEYS_POOL("GEMINI_API_KEYS_POOL")
+func (p *Instance) InitializePool() {
+	keys, err := p.LoadEnv_GEMINI_API_KEYS_POOL("GEMINI_API_KEYS_POOL")
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	HydrateChannels(keys)
+	p.HydrateChannels(keys)
 }
 
 // QueuedEVS queues, validates response and retries if necessary.
-func QueuedEVS(ctx context.Context, input gemi.Input, validate func(resp string) error, queueTries int, backoff int) (string, error) {
+func (p *Instance) QueuedEVS(ctx context.Context, input gemi.Input, validate func(resp string) error, queueTries int, backoff int) (string, error) {
 	timeStart := time.Now()
 	log.Println("Starting queued-based EVS with exponential backoff and validation...")
 	for i := 0; i < queueTries; i++ {
 		log.Printf("Attempt %d of %d", i+1, queueTries)
-		session, cleanup, err := Queue(ctx)
+		session, cleanup, err := p.Queue(ctx)
 
 		if err != nil {
 			log.Printf("Failed to get session: %v", err)
@@ -93,12 +95,12 @@ func QueuedEVS(ctx context.Context, input gemi.Input, validate func(resp string)
 }
 
 // Queue returns a session from the pool of available API keys.
-func Queue(ctx context.Context) (*gemi.Session, func(), error) {
+func (p *Instance) Queue(ctx context.Context) (*gemi.Session, func(), error) {
 	log.Println("Waiting for available key...")
 
 	// Non-blocking key retrieval
 	select {
-	case api := <-Channel:
+	case api := <-p.Channel:
 		log.Printf("Using key: %s", api.Key)
 
 		// New configuration
@@ -115,7 +117,7 @@ func Queue(ctx context.Context) (*gemi.Session, func(), error) {
 		log.Println("Creating model...")
 		model, cleanup, err := gemi.Model(ctx, cfx)
 		if err != nil {
-			Channel <- api                                // return key if model creation fails
+			p.Channel <- api                              // return key if model creation fails
 			log.Printf("Freeing key (Fail): %s", api.Key) // Log key release
 			return nil, nil, fmt.Errorf("error creating model: %w", err)
 		}
@@ -127,7 +129,7 @@ func Queue(ctx context.Context) (*gemi.Session, func(), error) {
 					log.Printf("Recovered from panic in cleanup: %v", r)
 				}
 				log.Printf("Freeing key (Finish): %s", api.Key) // Log key release
-				Channel <- api                                  // Always return key
+				p.Channel <- api                                // Always return key
 			}()
 
 			cleanup() // Call original cleanup
