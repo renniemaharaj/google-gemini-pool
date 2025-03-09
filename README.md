@@ -39,6 +39,8 @@ myGeminiKey := tranformer.API{
         Base: "gemini-20-pro-exp-0205", // or your preferred model
     },
 }
+
+// Push directly to exposed channel
 pool.Channel <- myGeminiKey
 ```
 
