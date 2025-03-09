@@ -66,18 +66,60 @@ fmt.Println(response)
 ### 2. Chat Application
 
 ```go
-session, cleanup, err := pool.Queue(context.Background())
-if err != nil {
-    log.Fatalf("Failed to queue session: %v", err)
-}
-defer cleanup()
+var HYSTORY = []*genai.Content{}
 
-// Send message with history
-response, err := session.SendInput(context.Background(), gemi.Input{
-    Current: genai.Text(userInput),
-    History: history,
-    Context: []map[string]string{},
-})
+func chatApp() {
+	log.Println("Starting chat application (type 'exit' to quit)")
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for {
+		fmt.Print("You: ")
+		if !scanner.Scan() {
+			break
+		}
+		userInput := scanner.Text()
+
+		if userInput == "exit" {
+			break
+		}
+
+		// Queue a session
+		session, cleanup, err := pool.Queue(context.Background())
+		if err != nil {
+			log.Printf("Failed to queue session: %v", err)
+			continue
+		}
+		defer cleanup()
+
+		// Send message and get response
+		response, err := session.SendInput(context.Background(), gemi.Input{
+			Current: genai.Text(userInput),
+			History: HYSTORY,
+			Context: []map[string]string{},
+		})
+
+		if err != nil {
+			log.Printf("Error getting response: %v", err)
+			continue
+		}
+
+		fmt.Printf("AI: %s\n", response)
+
+		HYSTORY = append(HYSTORY, &genai.Content{Parts: []genai.Part{genai.Text(userInput)}, Role: "user"})
+		HYSTORY = append(HYSTORY, &genai.Content{Parts: []genai.Part{genai.Text(response)}, Role: "model"})
+	}
+}
+
+func main() {
+	// Initialize API pool
+	pool.InitializePool()
+
+    // Start chatting
+	chatApp()
+
+	// Wait for the example to finish
+	fmt.Scanln()
+}
 ```
 
 ### 3. QueuedEVS (Queue with Validation and Retries)
