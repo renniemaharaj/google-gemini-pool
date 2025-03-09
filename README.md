@@ -21,7 +21,7 @@ go get github.com/renniemaharaj/google-gemini-pool
 Set up your API keys in your application:
 
 ```go
-// Store json object, [] of api: key and base for pool
+// Store json object, [] of transformer.API: key and base for pool
 var GEMINI_API_KEYS_POOL = []transformer.API{
     {
         Key:  "YOUR_API_KEY",
