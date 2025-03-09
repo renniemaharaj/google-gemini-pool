@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/google/generative-ai-go/genai"
+	"github.com/renniemaharaj/google-gemini-pool/internals/chat"
 	"github.com/renniemaharaj/google-gemini-pool/pkg/pool"
 	"github.com/renniemaharaj/google-gemini-pool/pkg/transformer"
 	"github.com/renniemaharaj/google-gemini-pool/pkg/transformer/gemi"
@@ -27,7 +28,7 @@ func chatApp(p *pool.Instance) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
-		fmt.Print("You: ")
+		fmt.Print("User: ")
 		if !scanner.Scan() {
 			break
 		}
@@ -38,7 +39,6 @@ func chatApp(p *pool.Instance) {
 		}
 
 		// Queue a session
-		// session, cleanup, err := p.Queue(context.Background())
 		response, err := p.QueuedEVS(context.Background(), gemi.Input{
 			Current: genai.Text(userInput),
 			History: HISTORY,
@@ -49,22 +49,28 @@ func chatApp(p *pool.Instance) {
 			log.Printf("Failed to queue session: %v", err)
 			continue
 		}
-		// defer cleanup()
 
-		// Send message and get response
-		// response, err := session.SendInput(context.Background(), gemi.Input{
-		// 	Current: genai.Text(userInput),
-		// 	History: HISTORY,
-		// 	Context: []map[string]string{},
-		// })
+		// Clear the screen before displaying chat history
+		chat.ClearScreen()
 
-		// if err != nil {
-		// 	log.Printf("Error getting response: %v", err)
-		// 	continue
-		// }
+		for _, part := range HISTORY {
+			if part.Role == "user" {
+				fmt.Print("<--/--> ➜ You: \n\n")
+				fmt.Printf("-----/--/-->> ➜ %v \n\n", part.Parts[0])
+			} else {
+				fmt.Print("<--/--> ➜ Model: \n\n")
+				fmt.Printf("-----/--/-->> ➜ %v \n\n", part.Parts[0])
+			}
+		}
 
-		fmt.Printf("AI: %s\n", response)
+		// Display the latest exchange with extra spacing
+		fmt.Print("<--/--> ➜ User: \n\n")
+		fmt.Printf("-----/--/-->> ➜ %v \n\n", userInput)
 
+		fmt.Print("<--/--> ➜ Model: \n\n")
+		fmt.Printf("-----/--/-->> ➜ %v \n\n", response)
+
+		// Append user and model responses to history
 		HISTORY = append(HISTORY, &genai.Content{Parts: []genai.Part{genai.Text(userInput)}, Role: "user"})
 		HISTORY = append(HISTORY, &genai.Content{Parts: []genai.Part{genai.Text(response)}, Role: "model"})
 	}
