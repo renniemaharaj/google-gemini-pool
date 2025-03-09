@@ -21,13 +21,25 @@ go get github.com/renniemaharaj/google-gemini-pool
 Set up your API keys in your application:
 
 ```go
-//Store json object, []map of api: key and base for pool
+// Store json object, [] of api: key and base for pool
 var GEMINI_API_KEYS_POOL = []transformer.API{
     {
         Key:  "YOUR_API_KEY",
         Base: "gemini-20-pro-exp-0205", // or your preferred model
     },
 }
+
+// Loads from GEMINI_API_KEYS_POOL environment variable & pushes all to pool
+pool.InitializePool() 
+
+// Push one (1) sigle transformer.API key to channel
+myGeminiKey := tranformer.API{
+    {
+        Key:  "YOUR_API_KEY",
+        Base: "gemini-20-pro-exp-0205", // or your preferred model
+    },
+}
+pool.Channel <- myGeminiKey
 ```
 
 ## Usage Examples
