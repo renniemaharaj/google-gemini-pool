@@ -66,7 +66,7 @@ fmt.Println(response)
 ### 2. Chat Application
 
 ```go
-var HYSTORY = []*genai.Content{}
+var HISTORY = []*genai.Content{}
 
 func chatApp() {
 	log.Println("Starting chat application (type 'exit' to quit)")
@@ -94,7 +94,7 @@ func chatApp() {
 		// Send message and get response
 		response, err := session.SendInput(context.Background(), gemi.Input{
 			Current: genai.Text(userInput),
-			History: HYSTORY,
+			History: HISTORY,
 			Context: []map[string]string{},
 		})
 
@@ -105,8 +105,8 @@ func chatApp() {
 
 		fmt.Printf("AI: %s\n", response)
 
-		HYSTORY = append(HYSTORY, &genai.Content{Parts: []genai.Part{genai.Text(userInput)}, Role: "user"})
-		HYSTORY = append(HYSTORY, &genai.Content{Parts: []genai.Part{genai.Text(response)}, Role: "model"})
+		HISTORY = append(HISTORY, &genai.Content{Parts: []genai.Part{genai.Text(userInput)}, Role: "user"})
+		HISTORY = append(HISTORY, &genai.Content{Parts: []genai.Part{genai.Text(response)}, Role: "model"})
 	}
 }
 
@@ -114,7 +114,7 @@ func main() {
 	// Initialize API pool
 	pool.InitializePool()
 
-    // Start chatting
+    	// Start chatting
 	chatApp()
 
 	// Wait for the example to finish
