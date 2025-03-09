@@ -28,7 +28,6 @@ func chatApp(p *pool.Instance) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
-		fmt.Print("User: ")
 		if !scanner.Scan() {
 			break
 		}
