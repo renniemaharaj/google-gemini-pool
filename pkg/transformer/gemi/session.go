@@ -20,11 +20,10 @@ type Input struct {
 	Current genai.Part          `json:"current"`
 	History []*genai.Content    `json:"history"`
 	Context []map[string]string `json:"context"`
-	Errors  []error             `json:"errors"`
 }
 
 func (i *Input) SendError(err error) {
-	i.Errors = append(i.Errors, err)
+	i.Context = append(i.Context, map[string]string{"error": err.Error()})
 }
 
 func (i *Input) String() string {
@@ -57,7 +56,7 @@ func (s *Session) ExponentiallyValidateSend(ctx context.Context, input *Input, v
 		if err != nil {
 			input.SendError(err)
 
-			log.Printf("Validation failed: %v", err)
+			log.Printf("Validation failed: %v <--/--> %v", err, *linted)
 			time.Sleep(time.Second << i) // Exponential backoff
 			continue
 		}
@@ -80,15 +79,10 @@ func (s *Session) SendInput(ctx context.Context, input *Input) (string, error) {
 	structInput := struct {
 		Current genai.Part          `json:"current"`
 		Context []map[string]string `json:"context"`
-		// Errors  []error             `json:"errors"`
 	}{
 		Current: input.Current,
 		Context: input.Context,
-		// Errors:  input.Errors,
 	}
-	// if structInput.Errors == nil {
-	// 	structInput.Errors = []error{}
-	// }
 
 	structInputBytes, err := json.Marshal(structInput)
 	if err != nil {
