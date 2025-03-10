@@ -15,7 +15,7 @@ import (
 )
 
 type Instance struct {
-	Channel chan transformer.API
+	Channel chan *transformer.API
 	once    sync.Once // ensures initialization happens only once
 
 }
@@ -23,9 +23,9 @@ type Instance struct {
 // Initialize API key pool
 func (p *Instance) HydrateChannels(keys []transformer.API) {
 	p.once.Do(func() {
-		p.Channel = make(chan transformer.API, len(keys))
+		p.Channel = make(chan *transformer.API, len(keys))
 		for _, key := range keys {
-			p.Channel <- key
+			p.Channel <- &key
 		}
 		log.Printf("API Key Pool Initialized with %d keys", len(keys))
 	})
@@ -65,7 +65,7 @@ func (p *Instance) InitializePool() {
 	p.HydrateChannels(keys)
 }
 
-// QueuedEVS queues, validates response and retries if necessary.
+// QueuedEVS queues, exponential backoff, validating model responses.
 func (p *Instance) QueuedEVS(ctx context.Context, input gemi.Input, validate func(resp string) error, queueTries int, backoff int) (string, error) {
 	timeStart := time.Now()
 	log.Println("Starting queued-based EVS with exponential backoff and validation...")
@@ -78,7 +78,7 @@ func (p *Instance) QueuedEVS(ctx context.Context, input gemi.Input, validate fun
 			continue
 		}
 
-		resp, err := session.ExponentiallyValidateSend(ctx, input, validate, backoff)
+		resp, err := session.ExponentiallyValidateSend(ctx, &input, validate, backoff)
 		cleanup()
 
 		if err != nil {
@@ -105,7 +105,7 @@ func (p *Instance) Queue(ctx context.Context) (*gemi.Session, func(), error) {
 
 		// New configuration
 		cfx := transformer.Configuration{
-			Key:        api,
+			Key:        *api,
 			Parameters: api.Parameters(),
 		}
 

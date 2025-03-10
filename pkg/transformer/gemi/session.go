@@ -32,7 +32,7 @@ func (i *Input) String() string {
 }
 
 // ExponentiallyValidateSend sends input to the AI model with retries, validation, and caching
-func (s *Session) ExponentiallyValidateSend(ctx context.Context, input Input, validate func(resp string) error, maxTries int) (string, error) {
+func (s *Session) ExponentiallyValidateSend(ctx context.Context, input *Input, validate func(resp string) error, maxTries int) (string, error) {
 	startTime := time.Now()
 
 	log.Println("Starting model-based interaction with exponential backoff and validation...")
@@ -72,7 +72,7 @@ func (s *Session) ExponentiallyValidateSend(ctx context.Context, input Input, va
 }
 
 // SendInput sends a message to the AI model and returns the response
-func (s *Session) SendInput(ctx context.Context, input Input) (string, error) {
+func (s *Session) SendInput(ctx context.Context, input *Input) (string, error) {
 	session := s.Model.StartChat()
 
 	session.History = input.History
